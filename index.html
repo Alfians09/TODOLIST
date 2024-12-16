@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>To Do List Alfi</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            background: linear-gradient(135deg, #f9f9f9, #e0e0e0);
+            color: #333;
+        }
+        h1 {
+            text-align: center;
+            font-size: 2.5rem;
+            color: #4CAF50;
+            margin: 20px 0;
+        }
+        .header-bar {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .header-bar h2 {
+            margin: 0;
+            font-size: 1.5rem;
+        }
+        .header-bar .filter {
+            display: flex;
+            gap: 10px;
+        }
+        .filter select, .filter input {
+            padding: 5px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .task-container {
+            margin: 20px auto;
+            max-width: 1200px;
+            background: white;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 0;
+        }
+        table, th, td {
+            border: 1px solid #ddd;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+        }
+        th {
+            background-color: #f4f4f4;
+            color: #333;
+        }
+        .status {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 4px;
+            color: white;
+            font-size: 0.9rem;
+        }
+        .status.pending {
+            background-color: #FF9800;
+        }
+        .status.progress {
+            background-color: #03A9F4;
+        }
+        .status.completed {
+            background-color: #4CAF50;
+        }
+        .btn {
+            padding: 5px 10px;
+            margin: 2px;
+            cursor: pointer;
+            border-radius: 4px;
+            border: none;
+        }
+        .btn-complete {
+            background-color: #4CAF50;
+            color: white;
+        }
+        .btn-delete {
+            background-color: #f44336;
+            color: white;
+        }
+        .btn:hover {
+            opacity: 0.9;
+        }
+        .add-task {
+            margin: 20px auto;
+            max-width: 1200px;
+            padding: 15px;
+            background: #fff;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+        }
+        .add-task input, .add-task select {
+            margin-right: 10px;
+            padding: 5px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .add-task button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="header-bar">
+        <h2>To Do List Alfi</h2>
+        <div class="filter">
+            <select id="filterStatus">
+                <option value="all">All</option>
+                <option value="pending">Pending</option>
+                <option value="progress">In Progress</option>
+                <option value="completed">Completed</option>
+            </select>
+            <input type="text" id="searchTask" placeholder="Search tasks...">
+        </div>
+    </div>
+
+    <div class="add-task">
+        <h3>Add New Task</h3>
+        <input type="text" id="newTask" placeholder="Task name">
+        <input type="text" id="newAssignee" placeholder="Assignee">
+        <input type="number" id="newPriority" placeholder="Priority (any number)" min="1">
+        <button id="addTaskBtn">Add Task</button>
+    </div>
+
+    <div class="task-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Task</th>
+                    <th>Status</th>
+                    <th>Assignee</th>
+                    <th>Priority</th>
+                    <th>Created</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="taskTableBody">
+                <!-- Tasks dynamically populated -->
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        const tasks = JSON.parse(localStorage.getItem('tasks')) || [];
+        const taskTableBody = document.getElementById('taskTableBody');
+        const filterStatus = document.getElementById('filterStatus');
+        const searchTask = document.getElementById('searchTask');
+        const addTaskBtn = document.getElementById('addTaskBtn');
+        const newTask = document.getElementById('newTask');
+        const newAssignee = document.getElementById('newAssignee');
+        const newPriority = document.getElementById('newPriority');
+
+        function saveTasks() {
+            localStorage.setItem('tasks', JSON.stringify(tasks));
+        }
+
+        function renderTasks() {
+            const statusFilter = filterStatus.value;
+            const searchFilter = searchTask.value.toLowerCase();
+            taskTableBody.innerHTML = '';
+
+            const filteredTasks = tasks.filter(task => {
+                const matchesStatus = statusFilter === 'all' || task.status === statusFilter;
+                const matchesSearch = task.task.toLowerCase().includes(searchFilter);
+                return matchesStatus && matchesSearch;
+            });
+
+            filteredTasks.forEach((task, index) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${index + 1}</td>
+                    <td>${task.task}</td>
+                    <td><span class="status ${task.status}">${capitalize(task.status)}</span></td>
+                    <td>${task.assignee}</td>
+                    <td>${task.priority}</td>
+                    <td>${task.created_at}</td>
+                    <td>
+                        <button class="btn btn-complete" onclick="markComplete(${task.id})">Complete</button>
+                        <button class="btn btn-delete" onclick="deleteTask(${task.id})">Delete</button>
+                    </td>
+                `;
+                taskTableBody.appendChild(row);
+            });
+        }
+
+        function capitalize(str) {
+            return str.charAt(0).toUpperCase() + str.slice(1);
+        }
+
+        function addTask() {
+            const taskName = newTask.value.trim();
+            const assignee = newAssignee.value.trim();
+            const priority = newPriority.value.trim();
+            if (taskName && assignee && priority) {
+                const newTaskItem = {
+                    id: tasks.length + 1,
+                    task: taskName,
+                    status: "pending",
+                    assignee: assignee,
+                    priority: priority,
+                    created_at: new Date().toLocaleString(),
+                };
+                tasks.push(newTaskItem);
+                saveTasks();
+                renderTasks();
+                newTask.value = "";
+                newAssignee.value = "";
+                newPriority.value = "";
+            }
+        }
+
+        function deleteTask(id) {
+            const taskIndex = tasks.findIndex(task => task.id === id);
+            if (taskIndex !== -1) {
+                tasks.splice(taskIndex, 1);
+                saveTasks();
+                renderTasks();
+            }
+        }
+
+        function markComplete(id) {
+            const task = tasks.find(task => task.id === id);
+            if (task) {
+                task.status = "completed";
+                saveTasks();
+                renderTasks();
+            }
+        }
+
+        addTaskBtn.addEventListener('click', addTask);
+        filterStatus.addEventListener('change', renderTasks);
+        searchTask.addEventListener('input', renderTasks);
+
+        renderTasks();
+    </script>
+</body>
+</html>
